@@ -1,0 +1,6 @@
+
+{
+  "name": "Exam Application Portal",
+  "description": "A comprehensive Exam Management System with distinct roles for Students, Staff, and Administrators, featuring secure application tracking and automated academic management.",
+  "requestFramePermissions": []
+}
