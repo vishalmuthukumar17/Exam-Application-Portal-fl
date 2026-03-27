@@ -27,4 +27,28 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/session/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ valid: false, message: 'User not found' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ valid: false, message: 'Account is deactivated. Please contact admin.' });
+    }
+
+    return res.json({
+      valid: true,
+      user: {
+        ...user.toObject(),
+        department: normalizeDepartment(user.department),
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ valid: false, message: 'Error validating session', error: error.message });
+  }
+});
+
 export default router;

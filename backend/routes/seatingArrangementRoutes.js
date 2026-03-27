@@ -26,6 +26,7 @@ const buildSeatNotifications = (arrangement, type = 'seating_arrangement') => {
           hallName: hall.hallName,
           seatNumber: assignment.seatNumber,
           scopeKey: arrangement.scopeKey,
+          studentId: assignment.studentId?.toString?.() || assignment.studentId || '',
         },
       });
     }
@@ -125,6 +126,39 @@ router.post('/:id/send-hall-tickets', async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({ message: 'Error sending hall tickets', error: error.message });
+  }
+});
+
+router.post('/send-hall-tickets/date/:date', async (req, res) => {
+  try {
+    const arrangements = await SeatingArrangement.find({ arrangementDate: req.params.date })
+      .populate('examId', 'examCode examName examDate department')
+      .populate('examIds', 'examCode examName examDate department')
+      .populate('generatedBy', 'name email department');
+
+    if (!arrangements.length) {
+      return res.status(404).json({ message: 'No seating arrangements found for this date' });
+    }
+
+    const notifications = arrangements.flatMap((arrangement) => buildSeatNotifications(arrangement, 'hall_ticket'));
+
+    await Notification.deleteMany({
+      type: 'hall_ticket',
+      'meta.arrangementDate': req.params.date,
+    });
+
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
+    }
+
+    return res.json({
+      message: 'Hall tickets sent successfully for date',
+      count: notifications.length,
+      arrangementDate: req.params.date,
+      arrangementCount: arrangements.length,
+    });
+  } catch (error) {
+    return res.status(400).json({ message: 'Error sending hall tickets for date', error: error.message });
   }
 });
 

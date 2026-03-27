@@ -98,6 +98,63 @@ const App: React.FC = () => {
     sessionStorage.removeItem('ep_session');
   };
 
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.user?.id) return;
+
+    let cancelled = false;
+    let alertShown = false;
+
+    const validateSession = async () => {
+      try {
+        const res = await fetch(`/api/auth/session/${auth.user?.id}`);
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+
+        if (!res.ok || !data?.valid) {
+          if (!cancelled) {
+            setAuth({ user: null, isAuthenticated: false });
+            sessionStorage.removeItem('ep_session');
+            if (!alertShown) {
+              alertShown = true;
+              alert(data?.message || 'Your account is no longer active. Please contact admin.');
+            }
+          }
+          return;
+        }
+
+        if (!cancelled && data?.user) {
+          const refreshedAuth = {
+            user: {
+              ...data.user,
+              id: data.user.id || data.user._id,
+              department: normalizeDepartment(data.user.department),
+            },
+            isAuthenticated: true,
+          };
+          setAuth(refreshedAuth);
+          sessionStorage.setItem('ep_session', JSON.stringify(refreshedAuth));
+        }
+      } catch (error) {
+        console.error('Session validation failed:', error);
+      }
+    };
+
+    validateSession();
+
+    const interval = window.setInterval(validateSession, 15000);
+    const onFocus = () => {
+      validateSession();
+    };
+
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [auth.isAuthenticated, auth.user?.id]);
+
   return (
     <AuthContext.Provider value={{ auth, login, logout }}>
       <HashRouter>

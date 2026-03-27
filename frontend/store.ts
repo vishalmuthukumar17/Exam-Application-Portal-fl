@@ -188,6 +188,13 @@ class ApiStore {
     return res.json();
   }
 
+  async sendHallTicketsByDate(arrangementDate: string) {
+    const res = await fetch(`/api/seating-arrangements/send-hall-tickets/date/${encodeURIComponent(arrangementDate)}`, {
+      method: 'POST',
+    });
+    return res.json();
+  }
+
   async getNotifications() {
     const res = await fetch('/api/notifications');
     const data = await res.json();

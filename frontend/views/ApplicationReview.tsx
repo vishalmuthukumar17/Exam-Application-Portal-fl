@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { db } from '../store';
 import { useAuth } from '../App';
 import { ApplicationStatus, UserRole, Application, Exam, User } from '../types';
-import { CheckCircle, XCircle, Download, Search, Filter, ArrowLeft, Users, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Download, Search, Filter, ArrowLeft, Users, FileText, RotateCcw } from 'lucide-react';
 
 const ApplicationReview: React.FC = () => {
   const { auth } = useAuth();
@@ -16,7 +16,7 @@ const ApplicationReview: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const selectedExamId = searchParams.get('examId') || '';
 
-  const [reviewModal, setReviewModal] = useState<{ show: boolean, appId: string, action: 'approve' | 'reject' | null }>({
+  const [reviewModal, setReviewModal] = useState<{ show: boolean, appId: string, action: 'approve' | 'reject' | 'revoke' | null }>({
     show: false, appId: '', action: null
   });
   const [remarks, setRemarks] = useState('');
@@ -113,12 +113,19 @@ const ApplicationReview: React.FC = () => {
     e.preventDefault();
     if (!reviewModal.appId || !reviewModal.action) return;
 
-    await db.updateApplication(reviewModal.appId, {
-      status: reviewModal.action === 'approve' ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED,
-      remarks,
-      reviewedBy: user.id,
-      reviewedAt: new Date().toISOString()
-    });
+    await db.updateApplication(reviewModal.appId, reviewModal.action === 'revoke'
+      ? {
+          status: ApplicationStatus.PENDING,
+          remarks,
+          reviewedBy: '',
+          reviewedAt: ''
+        }
+      : {
+          status: reviewModal.action === 'approve' ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED,
+          remarks,
+          reviewedBy: user.id,
+          reviewedAt: new Date().toISOString()
+        });
 
     await loadData();
     setReviewModal({ show: false, appId: '', action: null });
@@ -352,7 +359,39 @@ const ApplicationReview: React.FC = () => {
                                 </>
                               )}
                               {app.status !== ApplicationStatus.PENDING && (
-                                <div className="text-xs text-slate-400 italic pr-2">Reviewed</div>
+                                <>
+                                  {user.role === UserRole.ADMIN ? (
+                                    <>
+                                      {app.status !== ApplicationStatus.APPROVED && (
+                                        <button
+                                          onClick={() => setReviewModal({ show: true, appId: app.id, action: 'approve' })}
+                                          className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-colors"
+                                          title="Approve"
+                                        >
+                                          <CheckCircle size={18} />
+                                        </button>
+                                      )}
+                                      {app.status !== ApplicationStatus.REJECTED && (
+                                        <button
+                                          onClick={() => setReviewModal({ show: true, appId: app.id, action: 'reject' })}
+                                          className="p-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors"
+                                          title="Reject"
+                                        >
+                                          <XCircle size={18} />
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => setReviewModal({ show: true, appId: app.id, action: 'revoke' })}
+                                        className="p-1.5 bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white rounded-lg transition-colors"
+                                        title="Revoke to pending"
+                                      >
+                                        <RotateCcw size={18} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="text-xs text-slate-400 italic pr-2">Reviewed</div>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
@@ -381,11 +420,21 @@ const ApplicationReview: React.FC = () => {
               <button onClick={() => setReviewModal({ ...reviewModal, show: false })} className="text-slate-400 hover:text-slate-600">X</button>
             </div>
             <form onSubmit={handleReview} className="p-6 space-y-4">
-              <p className="text-sm text-slate-600">Please provide {reviewModal.action === 'approve' ? 'remarks' : 'reason'} for this decision.</p>
+              <p className="text-sm text-slate-600">
+                {reviewModal.action === 'revoke'
+                  ? 'Please provide remarks for sending this application back to pending review.'
+                  : `Please provide ${reviewModal.action === 'approve' ? 'remarks' : 'reason'} for this decision.`}
+              </p>
               <textarea
                 required
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder={reviewModal.action === 'approve' ? 'Registration verified.' : 'Missing prerequisites.'}
+                placeholder={
+                  reviewModal.action === 'approve'
+                    ? 'Registration verified.'
+                    : reviewModal.action === 'reject'
+                    ? 'Missing prerequisites.'
+                    : 'Decision revoked for re-review.'
+                }
                 rows={4}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
@@ -395,7 +444,11 @@ const ApplicationReview: React.FC = () => {
                 <button
                   type="submit"
                   className={`flex-1 px-4 py-2 text-white rounded-lg font-medium ${
-                    reviewModal.action === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
+                    reviewModal.action === 'approve'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : reviewModal.action === 'reject'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-slate-900 hover:bg-slate-800'
                   }`}
                 >
                   Confirm {reviewModal.action}

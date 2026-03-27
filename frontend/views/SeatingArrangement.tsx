@@ -431,14 +431,13 @@ const SeatingArrangement: React.FC = () => {
   };
 
   const sendHallTickets = async () => {
-    const arrangementId = (existingArrangement as any)?.id || (existingArrangement as any)?._id;
-    if (!arrangementId) return;
+    if (!selectedDate) return;
 
     setIsSendingTickets(true);
     setTicketStatus('');
     try {
-      const result = await db.sendHallTickets(arrangementId);
-      setTicketStatus(`${result.count || 0} hall tickets sent to students`);
+      const result = await db.sendHallTicketsByDate(selectedDate);
+      setTicketStatus(`${result.count || 0} hall tickets sent for ${formatExamDate(selectedDate)}`);
     } catch (error) {
       setTicketStatus('Failed to send hall tickets');
     } finally {
@@ -556,10 +555,10 @@ const SeatingArrangement: React.FC = () => {
               <button
                 type="button"
                 onClick={sendHallTickets}
-                disabled={!existingArrangement || isSendingTickets}
+                disabled={!selectedDate || !existingArrangement || isSendingTickets}
                 className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                {isSendingTickets ? 'Sending Hall Tickets...' : 'Send Hall Tickets to Students'}
+                {isSendingTickets ? 'Sending Hall Tickets...' : 'Send Hall Tickets for This Date'}
               </button>
 
               {ticketStatus && (

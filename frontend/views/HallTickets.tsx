@@ -146,7 +146,7 @@ const HallTickets: React.FC = () => {
   }, [applications, exams, user.id]);
 
   const hallTickets = useMemo(() => {
-    return arrangements
+    const arrangementTickets = arrangements
       .flatMap((arrangement) => {
         const examDetails = new Map<string, any>();
         const examIdValue = getEntityId(arrangement.examId);
@@ -186,7 +186,39 @@ const HallTickets: React.FC = () => {
         );
       })
       .sort((a, b) => new Date(a.examDate || a.arrangementDate || '').getTime() - new Date(b.examDate || b.arrangementDate || '').getTime());
-  }, [arrangements, exams, user.id]);
+
+    const notificationTickets = notifications
+      .filter((notification) => getEntityId(notification.userId) === user.id && notification.type === 'hall_ticket')
+      .map((notification) => {
+        const examMeta = exams.find((exam) => exam.examCode === (notification.meta?.examCode || ''));
+        return {
+          key: `notification-${notification.id}`,
+          title: notification.title || 'Hall Ticket Ready',
+          arrangementDate: notification.meta?.arrangementDate || '',
+          hallName: notification.meta?.hallName || '',
+          seatNumber: notification.meta?.seatNumber || '',
+          studentName: user.name,
+          rollNumber: user.rollNumber || '',
+          department: user.department,
+          examCode: notification.meta?.examCode || examMeta?.examCode || '',
+          examName: notification.meta?.examName || examMeta?.examName || '',
+          examDate: examMeta?.examDate || notification.meta?.arrangementDate || '',
+        };
+      });
+
+    const merged = [...arrangementTickets];
+    const seen = new Set(arrangementTickets.map((ticket) => `${ticket.examCode}|${ticket.seatNumber}`));
+
+    notificationTickets.forEach((ticket) => {
+      const ticketKey = `${ticket.examCode}|${ticket.seatNumber}`;
+      if (!seen.has(ticketKey)) {
+        merged.push(ticket);
+        seen.add(ticketKey);
+      }
+    });
+
+    return merged.sort((a, b) => new Date(a.examDate || a.arrangementDate || '').getTime() - new Date(b.examDate || b.arrangementDate || '').getTime());
+  }, [arrangements, exams, notifications, user.department, user.id, user.name, user.rollNumber]);
 
   const hallTicketNotifications = useMemo(() => {
     return notifications
@@ -194,6 +226,16 @@ const HallTickets: React.FC = () => {
         return getEntityId(notification.userId) === user.id && (notification.type === 'hall_ticket' || notification.type === 'seating_arrangement');
       })
       .slice(0, 5);
+  }, [notifications, user.id]);
+
+  const hallTicketNotificationKeys = useMemo(() => {
+    return new Set(
+      notifications
+        .filter((notification) => {
+          return getEntityId(notification.userId) === user.id && (notification.type === 'hall_ticket' || notification.type === 'seating_arrangement');
+        })
+        .map((notification) => `${notification.meta?.examCode || ''}|${notification.meta?.seatNumber || ''}`)
+    );
   }, [notifications, user.id]);
 
   return (
@@ -213,14 +255,9 @@ const HallTickets: React.FC = () => {
             <div className="space-y-3">
               {reminders.map((item) => (
                 <div key={item.appId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{item.examCode}</p>
-                      <p className="mt-2 text-lg font-bold text-slate-900">{item.examName}</p>
-                    </div>
-                    <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600">
-                      {formatDate(item.examDate)}
-                    </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{item.examCode}</p>
+                    <p className="mt-2 text-lg font-bold text-slate-900">{item.examName}</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <span className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-slate-600">
@@ -269,13 +306,23 @@ const HallTickets: React.FC = () => {
         </div>
         {hallTickets.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-2">
-            {hallTickets.map((ticket) => (
+            {hallTickets.map((ticket) => {
+              const isReady = hallTicketNotificationKeys.has(`${ticket.examCode}|${ticket.seatNumber}`);
+
+              return (
               <article key={ticket.key} className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{ticket.examCode}</p>
                     <h3 className="mt-2 text-xl font-bold text-slate-900">{ticket.examName}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{ticket.title}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-slate-500">{ticket.title}</p>
+                      {isReady && (
+                        <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                          Hall Ticket Ready
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -306,7 +353,7 @@ const HallTickets: React.FC = () => {
                   </div>
                 </div>
               </article>
-            ))}
+            )})}
           </div>
         ) : (
           <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
