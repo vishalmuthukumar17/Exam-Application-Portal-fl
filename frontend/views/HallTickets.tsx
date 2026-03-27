@@ -259,14 +259,20 @@ const HallTickets: React.FC = () => {
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{item.examCode}</p>
                     <p className="mt-2 text-lg font-bold text-slate-900">{item.examName}</p>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <span className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-slate-600">
-                      Exam: {formatDate(item.examDate)}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-slate-600">
-                      Deadline: {formatDate(item.deadline)}
-                    </span>
-                  </div>
+                  {(item.examDate || item.deadline) && (
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      {item.examDate && (
+                        <span className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-slate-600">
+                          Exam: {formatDate(item.examDate)}
+                        </span>
+                      )}
+                      {item.deadline && (
+                        <span className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-slate-600">
+                          Deadline: {formatDate(item.deadline)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
