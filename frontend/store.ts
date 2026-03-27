@@ -1,6 +1,9 @@
 import { User, Exam, Application, UserRole, ApplicationStatus, SeatingArrangement, Notification } from './types';
 import { normalizeDepartment } from './utils/department';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
+
 const mapId = (item: any) => ({ ...item, id: item._id });
 const normalizeUser = (user: any) => ({
   ...user,
@@ -64,13 +67,13 @@ const normalizeNotification = (notification: any) => ({
 class ApiStore {
   // Users
   async getUsers() {
-    const res = await fetch('/api/users');
+    const res = await fetch(apiUrl('/api/users'));
     const data = await res.json();
     return Array.isArray(data) ? data.map(mapId).map(normalizeUser) : [];
   }
 
   async addUser(user: Omit<User, 'id'>) {
-    const res = await fetch('/api/users', {
+    const res = await fetch(apiUrl('/api/users'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...user, department: normalizeDepartment(user.department) })
@@ -80,7 +83,7 @@ class ApiStore {
   }
 
   async updateUser(id: string, updates: Partial<User>) {
-    const res = await fetch(`/api/users/${id}`, {
+    const res = await fetch(apiUrl(`/api/users/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -93,19 +96,19 @@ class ApiStore {
   }
   
   async deleteUser(id: string) {
-    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    const res = await fetch(apiUrl(`/api/users/${id}`), { method: 'DELETE' });
     return res.json();
   }
 
   // Exams
   async getExams() {
-    const res = await fetch('/api/exams');
+    const res = await fetch(apiUrl('/api/exams'));
     const data = await res.json();
     return Array.isArray(data) ? data.map(mapId).map(normalizeExam) : [];
   }
   
   async addExam(exam: Omit<Exam, 'id'>) {
-    const res = await fetch('/api/exams', {
+    const res = await fetch(apiUrl('/api/exams'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...exam, department: normalizeDepartment(exam.department) })
@@ -115,7 +118,7 @@ class ApiStore {
   }
   
   async updateExam(id: string, updates: Partial<Exam>) {
-    const res = await fetch(`/api/exams/${id}`, {
+    const res = await fetch(apiUrl(`/api/exams/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -128,19 +131,19 @@ class ApiStore {
   }
   
   async deleteExam(id: string) {
-    const res = await fetch(`/api/exams/${id}`, { method: 'DELETE' });
+    const res = await fetch(apiUrl(`/api/exams/${id}`), { method: 'DELETE' });
     return res.json();
   }
 
   // Applications
   async getApplications() {
-    const res = await fetch('/api/applications');
+    const res = await fetch(apiUrl('/api/applications'));
     const data = await res.json();
     return Array.isArray(data) ? data.map(mapId).map(normalizeApplication) : [];
   }
   
   async addApplication(app: Omit<Application, 'id'>) {
-    const res = await fetch('/api/applications', {
+    const res = await fetch(apiUrl('/api/applications'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(app)
@@ -150,7 +153,7 @@ class ApiStore {
   }
   
   async updateApplication(id: string, updates: Partial<Application>) {
-    const res = await fetch(`/api/applications/${id}`, {
+    const res = await fetch(apiUrl(`/api/applications/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
@@ -160,19 +163,19 @@ class ApiStore {
   }
   
   async deleteApplication(id: string) {
-    const res = await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+    const res = await fetch(apiUrl(`/api/applications/${id}`), { method: 'DELETE' });
     return res.json();
   }
 
   // Seating Arrangements
   async getSeatingArrangements() {
-    const res = await fetch('/api/seating-arrangements');
+    const res = await fetch(apiUrl('/api/seating-arrangements'));
     const data = await res.json();
     return Array.isArray(data) ? data.map(mapId).map(normalizeSeatingArrangement) : [];
   }
 
   async saveSeatingArrangement(arrangement: Omit<SeatingArrangement, 'id' | 'createdAt' | 'updatedAt'>) {
-    const res = await fetch('/api/seating-arrangements', {
+    const res = await fetch(apiUrl('/api/seating-arrangements'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(arrangement)
@@ -182,34 +185,34 @@ class ApiStore {
   }
 
   async sendHallTickets(arrangementId: string) {
-    const res = await fetch(`/api/seating-arrangements/${arrangementId}/send-hall-tickets`, {
+    const res = await fetch(apiUrl(`/api/seating-arrangements/${arrangementId}/send-hall-tickets`), {
       method: 'POST',
     });
     return res.json();
   }
 
   async sendHallTicketsByDate(arrangementDate: string) {
-    const res = await fetch(`/api/seating-arrangements/send-hall-tickets/date/${encodeURIComponent(arrangementDate)}`, {
+    const res = await fetch(apiUrl(`/api/seating-arrangements/send-hall-tickets/date/${encodeURIComponent(arrangementDate)}`), {
       method: 'POST',
     });
     return res.json();
   }
 
   async getNotifications() {
-    const res = await fetch('/api/notifications');
+    const res = await fetch(apiUrl('/api/notifications'));
     const data = await res.json();
     return Array.isArray(data) ? data.map(mapId).map(normalizeNotification) : [];
   }
 
   async markNotificationRead(id: string) {
-    const res = await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
+    const res = await fetch(apiUrl(`/api/notifications/${id}/read`), { method: 'PUT' });
     const data = await res.json();
     return normalizeNotification(mapId(data));
   }
   
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<{ success: boolean, message: string }> {
       try {
-          const res = await fetch(`/api/users/${userId}/password`, {
+          const res = await fetch(apiUrl(`/api/users/${userId}/password`), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldPassword, newPassword })

@@ -5,6 +5,9 @@ import { User, UserRole, AuthState } from './types';
 import { db } from './store';
 import { normalizeDepartment } from './utils/department';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
+
 // Components
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -55,7 +58,7 @@ const App: React.FC = () => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +109,7 @@ const App: React.FC = () => {
 
     const validateSession = async () => {
       try {
-        const res = await fetch(`/api/auth/session/${auth.user?.id}`);
+        const res = await fetch(apiUrl(`/api/auth/session/${auth.user?.id}`));
         const text = await res.text();
         const data = text ? JSON.parse(text) : null;
 
